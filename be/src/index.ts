@@ -1,14 +1,16 @@
+require("dotenv").config();
 import Anthropic from "@anthropic-ai/sdk";
 import express from "express";
-require("dotenv").config();
-import { basePrompt as reactBasePrompt } from "./defaults/react";
-import { basePrompt as nodeBasePrompt } from "./defaults/node";
 import { TextBlock } from "@anthropic-ai/sdk/resources";
-import { BASE_PROMPT } from "./prompt";
+import { nodeBase } from "./defaults/node";
+import { BASE_PROMPT, getSystemPrompt } from "./prompt";
+import { reactBase } from "./defaults/react";
 const anthropic = new Anthropic();
 const app = express();
 app.use(express.json());
 
+//generate the templates for UI and Ai
+//figure out that it is a react project of a nodejs project
 app.post("/template", async (req, res) => {
   const prompt = req.body.prompt;
 
@@ -28,25 +30,23 @@ app.post("/template", async (req, res) => {
 
   if (answer === "react") {
     res.json({
+      type: "React Project",
       prompts: [
         BASE_PROMPT,
-        `Here is an artifact that contains all the availbale files to you.\n Consider the content of ALL the files in the project.\n\n${reactBasePrompt}\n\n Here is a list of files that are hidden from you but exist on the system and are not shown to you:\n\n -.gitignore\n -package-lock.json\n`,
+        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBase}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
       ],
-      //seperate the ui prompt
-      uiPrompts: [reactBasePrompt],
+      uiPrompt: [reactBase],
     });
     return;
   }
   if (answer === "nodejs") {
     res.json({
+      type: "Nodejs Project",
       prompts: [
-        `Here is an artifact that contains all the availbale files to you.\n Consider the content of ALL the files in the project.\n\n${nodeBasePrompt}\n\n Here is a list of files that are hidden from you but exist on the system and are not shown to you:\n\n -.gitignore\n -package-lock.json\n`,
+        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBase}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
       ],
-      //seperate the ui prompt
-      uiPrompt: [nodeBasePrompt],
+      uiPrompt: [nodeBase],
     });
-
-    return;
   }
 });
 
@@ -57,33 +57,15 @@ app.post("/template", async (req, res) => {
 
 //Chat endpoint
 //simply the prompt from the user
-// async function main() {
-//   await anthropic.messages
-//     .stream({
-//       model: "claude-3-5-sonnet-20241022",
-//       max_tokens: 8192,
-//       temperature: 0,
-//       messages: [
-//         {
-//           role: "user",
-//           content:
-//             "For all the apps use a generalised way and make them beautiful",
-//         },
-//         {
-//           role: "user",
-//           content: "fafaf",
-//         },
-//         {
-//           role: "user",
-//           content: "create a todo app",
-//         },
-//       ],
-//     })
-//     .on("text", (response) => {
-//       console.log(response);
-//     });
-// }
 
-// main();
-
+app.post("/chat", async (req, res) => {
+  const messages = req.body.message;
+  const respose = await anthropic.messages.stream({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 8192,
+    temperature: 0,
+    system: getSystemPrompt(),
+    messages: messages,
+  });
+});
 app.listen(8080);
