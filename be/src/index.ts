@@ -1,6 +1,6 @@
 require("dotenv").config();
 import Anthropic from "@anthropic-ai/sdk";
-import express from "express";
+import express, { response } from "express";
 import { TextBlock } from "@anthropic-ai/sdk/resources";
 import { nodeBase } from "./defaults/node";
 import { BASE_PROMPT, getSystemPrompt } from "./prompt";
@@ -59,13 +59,26 @@ app.post("/template", async (req, res) => {
 //simply the prompt from the user
 
 app.post("/chat", async (req, res) => {
-  const messages = req.body.message;
-  const respose = await anthropic.messages.stream({
+  const messages = req.body.messages;
+  const response = await anthropic.messages.create({
     model: "claude-3-5-sonnet-20241022",
     max_tokens: 8192,
     temperature: 0,
     system: getSystemPrompt(),
-    messages: messages,
+    messages,
   });
+
+  console.log(response);
+  //   anthropic.messages
+  //     .stream({
+  //       model: "claude-3-5-sonnet-20241022",
+  //       max_tokens: 8192,
+  //       temperature: 0,
+  //       system: getSystemPrompt(),
+  //       messages,
+  //     })
+  //     .on("text", (response) => {
+  //       console.log(response);
+  //     });
 });
 app.listen(8080);
